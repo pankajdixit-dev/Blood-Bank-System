@@ -1,0 +1,25 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Strip internal Render proxy port (e.g. :10000) from redirects
+    RewriteCond %{HTTP_HOST} ^([^:]+):[0-9]+$
+    RewriteRule ^(.*)$ https://%1/$1 [R=301,L]
+
+    # Smart Trailing Slash for Directories without appending internal port
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteCond %{REQUEST_URI} !/$
+    RewriteRule ^(.*)$ /$1/ [R=301,L]
+</IfModule>
+
+# Disable Directory Browsing
+Options -Indexes
+
+# PHP upload & execution settings
+<IfModule mod_php.c>
+    php_value upload_max_filesize 25M
+    php_value post_max_size 30M
+    php_value memory_limit 128M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+</IfModule>
