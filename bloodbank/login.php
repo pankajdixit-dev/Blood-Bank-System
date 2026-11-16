@@ -180,7 +180,8 @@ if(isset($_SESSION['login_id'])){
 				btn.removeAttr('disabled').html('Login');
 			},
 			success:function(resp){
-				if(resp == 1){
+				resp = resp.toString().trim();
+				if(resp == '1' || resp == 1){
 					location.href = 'index.php?page=home';
 				}else{
 					$('#login-form').prepend('<div class="alert alert-danger">Username or password is incorrect. (Use admin / admin123)</div>');

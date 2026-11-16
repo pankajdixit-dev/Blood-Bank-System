@@ -6,8 +6,11 @@ $crud = new Action();
 
 if($action == 'login'){
 	$login = $crud->login();
-	if($login)
-		echo $login;
+	if (ob_get_level() > 0) {
+		ob_clean();
+	}
+	echo $login;
+	exit;
 }
 if($action == 'login2'){
 	$login = $crud->login2();
