@@ -33,6 +33,14 @@ Class Action {
 		if(!isset($username) || !isset($password) || !$this->db) {
 			return 3;
 		}
+		// If users table does not exist yet, auto-import database
+		$chk_tbl = @$this->db->query("SHOW TABLES LIKE 'users'");
+		if (!$chk_tbl || $chk_tbl->num_rows == 0) {
+			include_once __DIR__ . '/db_helper.php';
+			if (function_exists('auto_import_db')) {
+				auto_import_db($this->db, getenv('DB_NAME') ?: 'defaultdb');
+			}
+		}
 		$username = $this->db->real_escape_string($username);
 		$qry = $this->db->query("SELECT * FROM users where username = '".$username."' and password = '".md5($password)."' ");
 		if($qry && $qry instanceof mysqli_result && $qry->num_rows > 0){

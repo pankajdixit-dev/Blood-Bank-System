@@ -4,24 +4,36 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 include('./db_connect.php');
+include_once('./db_helper.php');
 
 $db_ok = false;
 $tables_exist = false;
+$just_seeded = false;
 
 if (isset($conn) && $conn instanceof mysqli && empty($conn->connect_error)) {
     $db_ok = true;
     try {
-        $chk_table = @$conn->query("SHOW TABLES LIKE 'system_settings'");
+        $chk_table = @$conn->query("SHOW TABLES LIKE 'users'");
         if ($chk_table && $chk_table instanceof mysqli_result && $chk_table->num_rows > 0) {
             $tables_exist = true;
-            if(!isset($_SESSION['system'])){
-                $sys_qry = @$conn->query("SELECT * FROM system_settings limit 1");
-                if($sys_qry && $sys_qry instanceof mysqli_result && $sys_qry->num_rows > 0){
-                    $system = $sys_qry->fetch_array();
-                    foreach($system as $k => $v){
-                        if(!is_numeric($k))
-                            $_SESSION['system'][$k] = $v;
-                    }
+        } else {
+            // Auto-seed Aiven database on first visit
+            if (function_exists('auto_import_db')) {
+                $seeded = auto_import_db($conn, $db_name);
+                if ($seeded) {
+                    $tables_exist = true;
+                    $just_seeded = true;
+                }
+            }
+        }
+
+        if ($tables_exist && !isset($_SESSION['system'])) {
+            $sys_qry = @$conn->query("SELECT * FROM system_settings limit 1");
+            if($sys_qry && $sys_qry instanceof mysqli_result && $sys_qry->num_rows > 0){
+                $system = $sys_qry->fetch_array();
+                foreach($system as $k => $v){
+                    if(!is_numeric($k))
+                        $_SESSION['system'][$k] = $v;
                 }
             }
         }
@@ -110,10 +122,10 @@ if(isset($_SESSION['login_id'])){
   			<div class="card col-md-8 mx-auto">
   				<div class="card-body">
 
-					<?php if (isset($_GET['setup']) && $_GET['setup'] == 'success'): ?>
+					<?php if ($just_seeded || (isset($_GET['setup']) && $_GET['setup'] == 'success')): ?>
 					<div class="alert alert-success py-2 small text-center">
-						<i class="fa fa-check-circle mr-1"></i> <strong>Success!</strong> Database imported successfully.<br>
-						You can now login with <strong>admin / admin123</strong>.
+						<i class="fa fa-check-circle mr-1"></i> <strong>Aiven Database Ready!</strong><br>
+						Tables initialized. Login with <strong>admin / admin123</strong>.
 					</div>
 					<?php endif; ?>
 
@@ -132,11 +144,11 @@ if(isset($_SESSION['login_id'])){
   					<form id="login-form">
   						<div class="form-group">
   							<label for="username" class="control-label">Username</label>
-  							<input type="text" id="username" name="username" class="form-control" required autocomplete="username">
+  							<input type="text" id="username" name="username" class="form-control" value="admin" required autocomplete="username">
   						</div>
   						<div class="form-group">
   							<label for="password" class="control-label">Password</label>
-  							<input type="password" id="password" name="password" class="form-control" required autocomplete="current-password">
+  							<input type="password" id="password" name="password" class="form-control" required autocomplete="current-password" placeholder="admin123">
   						</div>
   						<center><button type="submit" class="btn-sm btn-block btn-wave col-md-6 btn-primary">Login</button></center>
   					</form>
@@ -171,7 +183,7 @@ if(isset($_SESSION['login_id'])){
 				if(resp == 1){
 					location.href = 'index.php?page=home';
 				}else{
-					$('#login-form').prepend('<div class="alert alert-danger">Username or password is incorrect.</div>');
+					$('#login-form').prepend('<div class="alert alert-danger">Username or password is incorrect. (Use admin / admin123)</div>');
 					btn.removeAttr('disabled').html('Login');
 				}
 			}
