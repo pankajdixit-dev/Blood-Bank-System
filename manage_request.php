@@ -35,6 +35,7 @@ if(isset($_GET['id']) && isset($conn) && $conn instanceof mysqli && empty($conn-
 		<div class="form-group">
 			<label for="" class="control-label">Available Volume (L)</label>
 			<input type="number" class="form-control text-right" step="any" name="avolume"  value="0" readonly="">
+			<small class="text-muted"><i class="fa fa-info-circle"></i> Available volume is auto-calculated from current stock in <b>Blood Donations</b>.</small>
 		</div>
 
 		<div class="form-group">
@@ -89,10 +90,13 @@ if(isset($_GET['id']) && isset($conn) && $conn instanceof mysqli && empty($conn-
 		e.preventDefault()
 		start_load()
 		$('#msg').html('')
-		if($('[name="volume"]').val() > $('[name="avolume"]').val()){
-			alert_toast("Blood requested volume is greater than available volume.",'danger')
-			end_load()
-			return false;
+		var req_vol = parseFloat($('[name="volume"]').val()) || 0;
+		var avail_vol = parseFloat($('[name="avolume"]').val()) || 0;
+		if(req_vol > avail_vol){
+			if(!confirm("Notice: Blood requested volume (" + req_vol + " L) is greater than available stock (" + avail_vol + " L).\n\nDo you want to save this request as 'Pending' anyway?")){
+				end_load()
+				return false;
+			}
 		}
 		$.ajax({
 			url:'ajax.php?action=save_request',
