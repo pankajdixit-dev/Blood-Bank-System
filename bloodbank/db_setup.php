@@ -4,6 +4,10 @@
  * Blood Bank Management System
  */
 
+if (function_exists('mysqli_report')) {
+    mysqli_report(MYSQLI_REPORT_OFF);
+}
+
 session_start();
 error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED);
 
@@ -92,7 +96,7 @@ if ($conn) {
         $server_version = $conn->server_info;
         
         // Check SSL Cipher
-        $cipher_res = $conn->query("SHOW STATUS LIKE 'Ssl_cipher'");
+        $cipher_res = @$conn->query("SHOW STATUS LIKE 'Ssl_cipher'");
         if ($cipher_res && $cipher_res instanceof mysqli_result && $cipher_res->num_rows > 0) {
             $row = $cipher_res->fetch_assoc();
             if (!empty($row['Value'])) {
@@ -121,8 +125,9 @@ foreach ($sql_paths as $p) {
 // Action: Perform 1-Click Import
 $import_message = '';
 $import_success = false;
+$is_auto = (isset($_GET['auto']) && $_GET['auto'] == '1');
 
-if (isset($_POST['import_database']) && $conn_status) {
+if ((isset($_POST['import_database']) || $is_auto) && $conn_status) {
     if (empty($sql_file)) {
         $import_message = "SQL Dump file (bloodbank_db.sql) was not found in database/ directory.";
     } else {
@@ -135,8 +140,8 @@ if (isset($_POST['import_database']) && $conn_status) {
             $import_message = "Failed to read SQL file contents.";
         } else {
             // Disable foreign key checks & strict mode for import
-            $conn->query("SET FOREIGN_KEY_CHECKS = 0");
-            $conn->query("SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO'");
+            @$conn->query("SET FOREIGN_KEY_CHECKS = 0");
+            @$conn->query("SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO'");
 
             // Clean parse SQL queries
             $lines = explode("\n", $sql_content);
@@ -161,15 +166,20 @@ if (isset($_POST['import_database']) && $conn_status) {
             }
 
             // Verify or inject default admin
-            $admin_check = $conn->query("SELECT * FROM users WHERE username = 'admin' LIMIT 1");
+            $admin_check = @$conn->query("SELECT * FROM users WHERE username = 'admin' LIMIT 1");
             if (!$admin_check || $admin_check->num_rows == 0) {
                 $default_pass = md5('admin123');
-                $conn->query("INSERT INTO users (`name`, `username`, `password`, `type`) VALUES ('Administrator', 'admin', '{$default_pass}', 1)");
+                @$conn->query("INSERT INTO users (`name`, `username`, `password`, `type`) VALUES ('Administrator', 'admin', '{$default_pass}', 1)");
             }
 
-            $conn->query("SET FOREIGN_KEY_CHECKS = 1");
+            @$conn->query("SET FOREIGN_KEY_CHECKS = 1");
             $import_success = true;
             $import_message = "Database imported successfully! Executed {$queries_executed} queries (Ignored non-critical warnings: {$queries_failed}). Default admin user verified.";
+
+            if ($is_auto) {
+                header("location:login.php?setup=success");
+                exit;
+            }
         }
     }
 }
@@ -263,7 +273,7 @@ if ($conn_status) {
         <?php echo htmlspecialchars($import_message); ?>
         <?php if ($import_success): ?>
             <div class="mt-3">
-                <a href="login.php" class="btn btn-success btn-lg"><i class="fa fa-sign-in-alt mr-1"></i> Proceed to Login Page Now</a>
+                <a href="login.php?setup=success" class="btn btn-success btn-lg"><i class="fa fa-sign-in-alt mr-1"></i> Proceed to Login Page Now</a>
             </div>
         <?php endif; ?>
         <button type="button" class="close" data-dismiss="alert" aria-label="Close">

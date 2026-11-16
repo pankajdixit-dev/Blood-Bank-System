@@ -4,6 +4,11 @@
  * Upgraded for Aiven Cloud MySQL (SSL requirement & 5-digit ports) and PHP 8.x
  */
 
+// Disable MySQLi exception throwing to prevent fatal Uncaught mysqli_sql_exception in PHP 8.1+
+if (function_exists('mysqli_report')) {
+    mysqli_report(MYSQLI_REPORT_OFF);
+}
+
 // Enable error logging while keeping display safe
 error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED);
 
@@ -80,7 +85,6 @@ if ($conn->connect_error) {
     // Don't kill execution if current page is db_setup.php
     $current_script = basename($_SERVER['PHP_SELF'] ?? '');
     if ($current_script !== 'db_setup.php') {
-        // Log connection error
         error_log("Database connection failed: " . $conn->connect_error);
     }
 } else {

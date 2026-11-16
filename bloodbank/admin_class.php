@@ -3,6 +3,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 ini_set('display_errors', 0);
+if (function_exists('mysqli_report')) {
+    mysqli_report(MYSQLI_REPORT_OFF);
+}
 error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED);
 
 Class Action {

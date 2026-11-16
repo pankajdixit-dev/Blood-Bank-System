@@ -6,17 +6,27 @@ if (session_status() === PHP_SESSION_NONE) {
 include('./db_connect.php');
 
 $db_ok = false;
+$tables_exist = false;
+
 if (isset($conn) && $conn instanceof mysqli && empty($conn->connect_error)) {
     $db_ok = true;
-    if(!isset($_SESSION['system'])){
-        $sys_qry = $conn->query("SELECT * FROM system_settings limit 1");
-        if($sys_qry && $sys_qry instanceof mysqli_result && $sys_qry->num_rows > 0){
-            $system = $sys_qry->fetch_array();
-            foreach($system as $k => $v){
-                if(!is_numeric($k))
-                    $_SESSION['system'][$k] = $v;
+    try {
+        $chk_table = @$conn->query("SHOW TABLES LIKE 'system_settings'");
+        if ($chk_table && $chk_table instanceof mysqli_result && $chk_table->num_rows > 0) {
+            $tables_exist = true;
+            if(!isset($_SESSION['system'])){
+                $sys_qry = @$conn->query("SELECT * FROM system_settings limit 1");
+                if($sys_qry && $sys_qry instanceof mysqli_result && $sys_qry->num_rows > 0){
+                    $system = $sys_qry->fetch_array();
+                    foreach($system as $k => $v){
+                        if(!is_numeric($k))
+                            $_SESSION['system'][$k] = $v;
+                    }
+                }
             }
         }
+    } catch (Throwable $e) {
+        $tables_exist = false;
     }
 }
 
@@ -99,10 +109,23 @@ if(isset($_SESSION['login_id'])){
 			<h4 class="text-white text-center mb-3"><b><?php echo htmlspecialchars($_SESSION['system']['name']) ?></b></h4>
   			<div class="card col-md-8 mx-auto">
   				<div class="card-body">
+
+					<?php if (isset($_GET['setup']) && $_GET['setup'] == 'success'): ?>
+					<div class="alert alert-success py-2 small text-center">
+						<i class="fa fa-check-circle mr-1"></i> <strong>Success!</strong> Database imported successfully.<br>
+						You can now login with <strong>admin / admin123</strong>.
+					</div>
+					<?php endif; ?>
+
 					<?php if (!$db_ok || (isset($conn) && $conn->connect_error)): ?>
 					<div class="alert alert-warning py-2 small text-center">
-						<strong>Notice:</strong> Database is not initialized or connected.<br>
-						<a href="db_setup.php" class="btn btn-warning btn-sm mt-1 font-weight-bold">Run Database Setup (1-Click)</a>
+						<strong>Notice:</strong> Database is not connected.<br>
+						<a href="db_setup.php" class="btn btn-warning btn-sm mt-1 font-weight-bold">Configure Database</a>
+					</div>
+					<?php elseif (!$tables_exist): ?>
+					<div class="alert alert-warning py-2 small text-center">
+						<strong>Aiven DB Connected:</strong> Tables not found in <code><?php echo htmlspecialchars($db_name); ?></code>.<br>
+						<a href="db_setup.php?auto=1" class="btn btn-danger btn-sm mt-2 font-weight-bold"><i class="fa fa-cloud-upload-alt mr-1"></i> 1-Click Import Database Tables</a>
 					</div>
 					<?php endif; ?>
 
