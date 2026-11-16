@@ -15,6 +15,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && a2enmod rewrite headers \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Configure PHP settings (Output Buffering prevents any 'headers already sent' warnings)
+RUN echo "output_buffering = 4096" > /usr/local/etc/php/conf.d/custom-php.ini && \
+    echo "upload_max_filesize = 25M" >> /usr/local/etc/php/conf.d/custom-php.ini && \
+    echo "post_max_size = 30M" >> /usr/local/etc/php/conf.d/custom-php.ini && \
+    echo "memory_limit = 256M" >> /usr/local/etc/php/conf.d/custom-php.ini
+
 # Enable AllowOverride All in Apache main configuration
 RUN sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
 

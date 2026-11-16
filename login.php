@@ -1,6 +1,5 @@
-<!DOCTYPE html>
-<html lang="en">
 <?php 
+ob_start();
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -30,6 +29,8 @@ if(isset($_SESSION['login_id'])){
     exit;
 }
 ?>
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
@@ -156,3 +157,8 @@ if(isset($_SESSION['login_id'])){
 </script>	
 </body>
 </html>
+<?php
+if (ob_get_level() > 0) {
+    ob_end_flush();
+}
+?>
